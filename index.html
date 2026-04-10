@@ -2,180 +2,322 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>日元薪资转换器</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --bg: #f5f5f0; --card: #ffffff; --border: rgba(0,0,0,0.08); --text: #1a1a1a; --muted: #666;
-    --accent: #1a56db; --accent-light: #e8f0fe; --green: #0d7a4a; --green-light: #e6f4ed;
-    --amber: #92400e; --amber-light: #fef3c7; --red: #991b1b; --red-light: #fee2e2;
-    --current: #1a56db; --current-light: #dbeafe;
+    --bg-color: #f2f2f7;
+    --card-bg: #ffffff;
+    --text-main: #1c1c1e;
+    --text-muted: #8e8e93;
+    --accent: #007aff;
+    --accent-bg: #e5f0ff;
+    --green: #34c759;
+    --green-bg: #eaf9ed;
+    --orange: #ff9500;
+    --orange-bg: #fff4e5;
+    --border: rgba(60, 60, 67, 0.1);
+    --shadow: 0 4px 20px rgba(0,0,0,0.04);
   }
+
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#111;--card:#1c1c1e;--border:rgba(255,255,255,0.08);--text:#f0f0f0;--muted:#999;
-      --accent:#4d8ef7;--accent-light:#1a2740;--green:#34d399;--green-light:#0d2a1f;
-      --amber:#fbbf24;--amber-light:#2d1f0a;--red:#f87171;--red-light:#2d0f0f;
-      --current:#60a5fa;--current-light:#1e3a5f; }
+    :root {
+      --bg-color: #000000;
+      --card-bg: #1c1c1e;
+      --text-main: #f2f2f7;
+      --text-muted: #98989d;
+      --accent: #0a84ff;
+      --accent-bg: rgba(10, 132, 255, 0.15);
+      --green: #32d74b;
+      --green-bg: rgba(50, 215, 75, 0.15);
+      --orange: #ff9f0a;
+      --orange-bg: rgba(255, 159, 10, 0.15);
+      --border: rgba(84, 84, 88, 0.65);
+      --shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
   }
-  body { background: var(--bg); color: var(--text); font-family: -apple-system,'Helvetica Neue',Arial,sans-serif; padding: 16px; }
-  h1 { font-size: 18px; font-weight: 600; margin-bottom: 2px; }
-  .subtitle { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
-  .card { background: var(--card); border-radius: 14px; border: 1px solid var(--border); padding: 16px; margin-bottom: 14px; }
-  .inputs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .input-group label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 5px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.4px; }
-  .input-row { display: flex; align-items: center; gap: 6px; background: var(--bg); border: 1px solid var(--border); border-radius: 9px; padding: 8px 12px; }
-  .input-row:focus-within { border-color: var(--accent); }
-  .unit { font-size: 12px; color: var(--muted); white-space: nowrap; }
-  .input-row input[type="number"] { flex: 1; background: none; border: none; outline: none; font-size: 16px; font-weight: 600; color: var(--text); min-width: 0; width: 100%; }
-  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
-  .range-section { margin-top: 16px; }
-  .range-label { font-size: 11px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 8px; }
-  .range-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .range-field label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
-  .step-row { display: flex; align-items: center; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
-  .step-row label { font-size: 11px; color: var(--muted); font-weight: 500; }
-  .step-btn { background: var(--bg); border: 1px solid var(--border); border-radius: 20px; padding: 4px 12px; font-size: 12px; cursor: pointer; color: var(--text); transition: all 0.15s; }
-  .step-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .step-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .slider-section { margin-top: 14px; }
-  .slider-label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-  .slabel { font-size: 11px; color: var(--muted); font-weight: 500; }
-  .sval { font-size: 15px; font-weight: 700; color: var(--accent); }
-  input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
-  .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
-  .metric { background: var(--card); border-radius: 11px; border: 1px solid var(--border); padding: 12px; }
-  .mlabel { font-size: 11px; color: var(--muted); margin-bottom: 3px; font-weight: 500; }
-  .mval { font-size: 17px; font-weight: 700; }
-  .mval.green { color: var(--green); } .mval.blue { color: var(--accent); } .mval.amber { color: var(--amber); }
-  .chart-wrap { position: relative; height: 200px; }
-  .table-section { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th { font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; padding: 7px 10px; text-align: right; border-bottom: 1px solid var(--border); }
-  th:first-child { text-align: left; }
-  td { padding: 9px 10px; text-align: right; border-bottom: 1px solid var(--border); }
-  td:first-child { text-align: left; font-weight: 500; }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  
+  body { 
+    background-color: var(--bg-color); 
+    color: var(--text-main); 
+    padding: 20px 16px; 
+    max-width: 600px; 
+    margin: 0 auto; 
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .header { text-align: center; margin-bottom: 24px; }
+  .header h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.5px; }
+  .header p { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+
+  /* 核心结果区 */
+  .hero-card {
+    background: var(--accent);
+    color: white;
+    border-radius: 20px;
+    padding: 24px;
+    text-align: center;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 30px rgba(0, 122, 255, 0.3);
+  }
+  .hero-label { font-size: 14px; opacity: 0.9; margin-bottom: 8px; font-weight: 500;}
+  .hero-value { font-size: 40px; font-weight: 700; letter-spacing: -1px; }
+  .hero-sub { font-size: 13px; opacity: 0.8; margin-top: 8px; }
+
+  /* 通用卡片 */
+  .card { 
+    background: var(--card-bg); 
+    border-radius: 16px; 
+    padding: 20px; 
+    margin-bottom: 20px; 
+    box-shadow: var(--shadow);
+  }
+
+  .section-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; color: var(--text-main); }
+
+  /* 输入框组 */
+  .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;}
+  .input-group label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 8px; font-weight: 500; }
+  .input-box { 
+    display: flex; align-items: center; 
+    background: var(--bg-color); 
+    border-radius: 12px; 
+    padding: 12px 14px; 
+    border: 1px solid transparent;
+    transition: all 0.2s;
+  }
+  .input-box:focus-within { border-color: var(--accent); background: var(--card-bg); }
+  .input-box input { 
+    flex: 1; border: none; background: none; outline: none; 
+    font-size: 16px; font-weight: 600; color: var(--text-main); 
+    width: 100%;
+  }
+  .unit { font-size: 14px; color: var(--text-muted); font-weight: 500; }
+
+  /* 步长按钮 */
+  .step-group { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .step-btn { 
+    background: var(--bg-color); border: none; border-radius: 8px; 
+    padding: 8px 16px; font-size: 13px; font-weight: 600; 
+    color: var(--text-muted); cursor: pointer; transition: 0.2s;
+  }
+  .step-btn.active { background: var(--accent-bg); color: var(--accent); }
+
+  /* 滑块 */
+  .slider-container { margin-top: 10px; }
+  .slider-header { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 12px; color: var(--text-muted); font-weight: 500;}
+  .slider-val { color: var(--accent); font-weight: 700; font-size: 15px; }
+  input[type="range"] { 
+    width: 100%; height: 6px; border-radius: 3px; 
+    appearance: none; background: var(--bg-color); outline: none; 
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    appearance: none; width: 24px; height: 24px; border-radius: 50%;
+    background: #fff; border: 2px solid var(--accent);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2); cursor: pointer;
+  }
+
+  /* 极值卡片 */
+  .minmax-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .mm-card { padding: 12px; border-radius: 12px; background: var(--bg-color); }
+  .mm-card.high { background: var(--green-bg); }
+  .mm-card.low { background: var(--orange-bg); }
+  .mm-label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+  .mm-val { font-size: 18px; font-weight: 700; }
+  .high .mm-val { color: var(--green); }
+  .low .mm-val { color: var(--orange); }
+
+  /* 图表和表格 */
+  .chart-wrap { position: relative; height: 220px; width: 100%; }
+  
+  .table-wrap { overflow-x: auto; margin-top: 10px; }
+  table { width: 100%; border-collapse: collapse; text-align: right; white-space: nowrap; }
+  th { font-size: 12px; color: var(--text-muted); font-weight: 500; padding: 12px 8px; border-bottom: 1px solid var(--border); }
+  td { font-size: 14px; padding: 14px 8px; border-bottom: 1px solid var(--border); font-weight: 500; }
+  th:first-child, td:first-child { text-align: left; }
   tr:last-child td { border-bottom: none; }
-  tr:hover td { background: var(--bg); }
-  tr.current-row td { background: var(--current-light); }
-  tr.current-row td:first-child { color: var(--current); font-weight: 700; }
-  .badge { display: inline-block; font-size: 9px; padding: 2px 6px; border-radius: 20px; margin-left: 5px; font-weight: 600; vertical-align: middle; }
-  .badge-blue { background: var(--current-light); color: var(--current); }
-  .badge-green { background: var(--green-light); color: var(--green); }
-  .badge-red { background: var(--red-light); color: var(--red); }
-  .diff-pos { color: var(--green); font-size: 11px; } .diff-neg { color: var(--red); font-size: 11px; }
+  
+  .cur-row { background: var(--accent-bg); border-radius: 8px; }
+  .cur-row td { color: var(--accent); font-weight: 700; border-bottom: none; }
+  .cur-row td:first-child { border-top-left-radius: 8px; border-bottom-left-radius: 8px; }
+  .cur-row td:last-child { border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
+  
+  .tag { font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-left: 6px; font-weight: 600; }
+  .tag-cur { background: var(--accent); color: white; }
+  
+  .diff-up { color: var(--green); font-size: 12px; }
+  .diff-down { color: var(--orange); font-size: 12px; }
 </style>
 </head>
 <body>
-<h1>日元工资换算器</h1>
-<p class="subtitle">实时计算不同汇率下的人民币到手金额</p>
+
+<div class="header">
+  <h1>💴 日元薪资转换器</h1>
+  <p>实时测算汇率波动下的到手收入</p>
+</div>
+
+<div class="hero-card">
+  <div class="hero-label">当前汇率折合人民币约</div>
+  <div class="hero-value" id="hero-cny">￥0</div>
+  <div class="hero-sub" id="hero-yearly">预估年收: ￥0万</div>
+</div>
 
 <div class="card">
-  <div class="inputs-grid">
+  <div class="section-title">参数设置</div>
+  <div class="input-grid">
     <div class="input-group">
-      <label>到手工资（日元）</label>
-      <div class="input-row"><span class="unit">¥</span><input type="number" id="jpy" value="220000" min="0" step="1000"><span class="unit">JPY</span></div>
+      <label>日元月薪 (到手)</label>
+      <div class="input-box">
+        <input type="number" id="jpy" value="220000" min="0" step="1000">
+        <span class="unit">円</span>
+      </div>
     </div>
     <div class="input-group">
-      <label>当前汇率</label>
-      <div class="input-row"><input type="number" id="currentRate" value="4.30" min="0.01" step="0.01"><span class="unit">CNY/100JPY</span></div>
+      <label>当前汇率 (CNY/100JPY)</label>
+      <div class="input-box">
+        <input type="number" id="currentRate" value="4.30" min="0" step="0.01">
+      </div>
     </div>
   </div>
-  <div class="range-section">
-    <div class="range-label">汇率区间</div>
-    <div class="range-inputs">
-      <div class="range-field"><label>最小汇率</label><div class="input-row"><input type="number" id="minRate" value="3.50" step="0.10"></div></div>
-      <div class="range-field"><label>最大汇率</label><div class="input-row"><input type="number" id="maxRate" value="5.00" step="0.10"></div></div>
+
+  <div class="slider-container">
+    <div class="slider-header">
+      <span>拖动模拟汇率波动</span>
+      <span class="slider-val" id="sliderVal">4.30</span>
     </div>
-    <div class="step-row">
-      <label>刻度：</label>
-      <button class="step-btn" data-step="0.05">0.05</button>
-      <button class="step-btn active" data-step="0.10">0.10</button>
-      <button class="step-btn" data-step="0.20">0.20</button>
-      <button class="step-btn" data-step="0.25">0.25</button>
-      <button class="step-btn" data-step="0.50">0.50</button>
-    </div>
-  </div>
-  <div class="slider-section">
-    <div class="slider-label-row"><span class="slabel">拖动预览汇率</span><span class="sval" id="sliderVal">4.30</span></div>
-    <input type="range" id="rateSlider" min="0" max="100" value="50">
+    <input type="range" id="rateSlider" min="3.5" max="5.0" step="0.01" value="4.30">
   </div>
 </div>
 
-<div class="metrics" id="metrics"></div>
+<div class="card minmax-grid">
+  <div class="mm-card high">
+    <div class="mm-label">最高点 (5.00)</div>
+    <div class="mm-val" id="val-high">￥0</div>
+  </div>
+  <div class="mm-card low">
+    <div class="mm-label">最低点 (3.50)</div>
+    <div class="mm-val" id="val-low">￥0</div>
+  </div>
+</div>
 
-<div class="card"><div class="chart-wrap"><canvas id="chart" role="img" aria-label="不同汇率下人民币金额"></canvas></div></div>
+<div class="card">
+  <div class="section-title">波动趋势 (0.1刻度)</div>
+  <div class="chart-wrap"><canvas id="chart"></canvas></div>
+</div>
 
-<div class="card table-section">
-  <table><thead><tr><th>汇率</th><th>人民币（元）</th><th>与当前差</th><th>年收入</th></tr></thead><tbody id="tbody"></tbody></table>
+<div class="card">
+  <div class="section-title">详细对照表</div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>汇率</th><th>月收入</th><th>月差额</th><th>年收入</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
 </div>
 
 <script>
-let step = 0.10, chart = null;
-function getInputs() {
-  const jpy = parseFloat(document.getElementById('jpy').value)||220000;
-  const cur = parseFloat(document.getElementById('currentRate').value)||4.30;
-  const mn = parseFloat(document.getElementById('minRate').value)||3.50;
-  const mx = parseFloat(document.getElementById('maxRate').value)||5.00;
-  return {jpy,cur,mn:Math.min(mn,mx),mx:Math.max(mn,mx)};
+let chart = null;
+
+function fmt(num, decimals = 0) {
+  return num.toLocaleString('zh-CN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
-function buildRates(mn,mx){
-  const rates=[],s=Math.round(step*100);
-  let r=Math.round(mn*100),end=Math.round(mx*100);
-  while(r<=end){rates.push(r/100);r+=s;}
-  return rates;
-}
-function fmt(n){return n.toLocaleString('zh-CN',{maximumFractionDigits:2,minimumFractionDigits:2});}
-function render(){
-  const {jpy,cur,mn,mx}=getInputs();
-  const rates=buildRates(mn,mx);
-  const curCny=jpy*cur/100,maxCny=jpy*mx/100,minCny=jpy*mn/100;
-  document.getElementById('metrics').innerHTML=`
-    <div class="metric"><div class="mlabel">当前汇率到手</div><div class="mval blue">￥${Math.round(curCny).toLocaleString()}</div></div>
-    <div class="metric"><div class="mlabel">最高 (${mx.toFixed(2)})</div><div class="mval green">￥${Math.round(maxCny).toLocaleString()}</div></div>
-    <div class="metric"><div class="mlabel">最低 (${mn.toFixed(2)})</div><div class="mval amber">￥${Math.round(minCny).toLocaleString()}</div></div>`;
-  const labels=rates.map(r=>r.toFixed(2));
-  const values=rates.map(r=>parseFloat((jpy*r/100).toFixed(2)));
-  const colors=rates.map(r=>Math.abs(r-cur)<step/2?'#1a56db':r>cur?'#0d7a4a':'#d97706');
-  if(chart)chart.destroy();
-  chart=new Chart(document.getElementById('chart').getContext('2d'),{
-    type:'bar',
-    data:{labels,datasets:[{data:values,backgroundColor:colors,borderRadius:4,borderSkipped:false}]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>`汇率 ${i[0].label}`,label:i=>`￥${fmt(i.raw)}`}}},
-      scales:{x:{grid:{display:false},ticks:{font:{size:10},maxRotation:45,autoSkip:rates.length>15}},
-        y:{grid:{color:'rgba(128,128,128,0.1)'},ticks:{font:{size:10},callback:v=>'￥'+(v/10000).toFixed(1)+'万'}}}}
+
+function render() {
+  const jpy = parseFloat(document.getElementById('jpy').value) || 0;
+  const curRate = parseFloat(document.getElementById('currentRate').value) || 0;
+  const minRate = 3.50;
+  const maxRate = 5.00;
+  const step = 0.10;
+
+  // 计算核心数据
+  const curCny = (jpy * curRate) / 100;
+  const highCny = (jpy * maxRate) / 100;
+  const lowCny = (jpy * minRate) / 100;
+
+  // 更新DOM
+  document.getElementById('hero-cny').innerText = '￥' + fmt(curCny);
+  document.getElementById('hero-yearly').innerText = `预估年收: ￥${((curCny * 12) / 10000).toFixed(1)}万`;
+  document.getElementById('val-high').innerText = '￥' + fmt(highCny);
+  document.getElementById('val-low').innerText = '￥' + fmt(lowCny);
+
+  // 构建数组
+  const rates = [];
+  let r = minRate;
+  while (r <= maxRate + 0.01) { rates.push(r); r += step; }
+  
+  // 确保当前汇率在列表中被高亮显示
+  let closestRate = rates.reduce((prev, curr) => Math.abs(curr - curRate) < Math.abs(prev - curRate) ? curr : prev);
+
+  // 图表
+  const labels = rates.map(r => r.toFixed(2));
+  const values = rates.map(r => (jpy * r) / 100);
+  const colors = rates.map(r => Math.abs(r - closestRate) < 0.01 ? '#007aff' : 'rgba(0, 122, 255, 0.2)');
+
+  if (chart) chart.destroy();
+  chart = new Chart(document.getElementById('chart').getContext('2d'), {
+    type: 'bar',
+    data: { labels, datasets: [{ data: values, backgroundColor: colors, borderRadius: 6 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => `￥${fmt(i.raw, 2)}` } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: { grid: { color: 'rgba(150,150,150,0.1)' }, border: {display: false}, ticks: { font: { size: 11 }, callback: v => (v / 1000).toFixed(0) + 'k' } }
+      }
+    }
   });
-  const tbody=document.getElementById('tbody');
-  tbody.innerHTML='';
-  rates.forEach(r=>{
-    const cny=jpy*r/100,diff=cny-curCny,isCur=Math.abs(r-cur)<step/2;
-    const diffHtml=isCur?'<span style="color:var(--muted)">—</span>':
-      diff>0?`<span class="diff-pos">+${fmt(diff)}</span>`:`<span class="diff-neg">${fmt(diff)}</span>`;
-    const yearly=(cny*12/10000).toFixed(1)+'万';
-    const badge=isCur?'<span class="badge badge-blue">当前</span>':r===mx?'<span class="badge badge-green">最高</span>':r===mn?'<span class="badge badge-red">最低</span>':'';
-    const tr=document.createElement('tr');
-    if(isCur)tr.className='current-row';
-    tr.innerHTML=`<td>${r.toFixed(2)}${badge}</td><td>￥${fmt(cny)}</td><td>${diffHtml}</td><td>${yearly}</td>`;
+
+  // 表格
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+  rates.forEach(r => {
+    const cny = (jpy * r) / 100;
+    const diff = cny - curCny;
+    const isCur = Math.abs(r - closestRate) < 0.01;
+    
+    let diffHtml = '<span style="color:var(--text-muted)">-</span>';
+    if (!isCur) {
+      diffHtml = diff > 0 ? `<span class="diff-up">+${fmt(diff)}</span>` : `<span class="diff-down">${fmt(diff)}</span>`;
+    }
+
+    const tr = document.createElement('tr');
+    if (isCur) tr.className = 'cur-row';
+    
+    const tag = isCur ? '<span class="tag tag-cur">当前</span>' : '';
+    
+    tr.innerHTML = `
+      <td>${r.toFixed(2)}${tag}</td>
+      <td>￥${fmt(cny)}</td>
+      <td>${diffHtml}</td>
+      <td>${(cny * 12 / 10000).toFixed(1)}万</td>
+    `;
     tbody.appendChild(tr);
   });
-  const pct=mx===mn?50:((cur-mn)/(mx-mn))*100;
-  document.getElementById('rateSlider').value=Math.max(0,Math.min(100,pct));
-  document.getElementById('sliderVal').textContent=cur.toFixed(2);
 }
-document.querySelectorAll('.step-btn').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    document.querySelectorAll('.step-btn').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');step=parseFloat(btn.dataset.step);render();
-  });
-});
-document.getElementById('rateSlider').addEventListener('input',function(){
-  const {mn,mx}=getInputs();
-  const r=mn+(mx-mn)*(this.value/100);
-  document.getElementById('currentRate').value=r.toFixed(2);
-  document.getElementById('sliderVal').textContent=r.toFixed(2);
+
+// 绑定事件
+document.getElementById('rateSlider').addEventListener('input', function() {
+  const val = parseFloat(this.value).toFixed(2);
+  document.getElementById('currentRate').value = val;
+  document.getElementById('sliderVal').innerText = val;
   render();
 });
-['jpy','currentRate','minRate','maxRate'].forEach(id=>document.getElementById(id).addEventListener('input',render));
+
+document.getElementById('currentRate').addEventListener('input', function() {
+  const val = parseFloat(this.value);
+  if(val >= 3.5 && val <= 5.0) {
+    document.getElementById('rateSlider').value = val;
+    document.getElementById('sliderVal').innerText = val.toFixed(2);
+  }
+  render();
+});
+
+document.getElementById('jpy').addEventListener('input', render);
+
+// 初始化
 render();
 </script>
 </body>
