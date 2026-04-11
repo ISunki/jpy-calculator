@@ -1,282 +1,445 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-    <title>日元薪资转换器</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>日元薪资转换器</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💹</text></svg>">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23007aff%22/><text y=%22.95em%22 x=%225%22 font-size=%2285%22>💹</text></svg>">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-title" content="日薪换算">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#007aff">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --bg:#f2f2f7;--card:#fff;--text:#1c1c1e;--muted:#8e8e93;
+  --accent:#007aff;--accent-bg:rgba(0,122,255,0.10);--accent-glow:rgba(0,122,255,0.25);
+  --green-text:#1a7a35;--green-bg:rgba(52,199,89,0.12);
+  --red-text:#c0281f;--red-bg:rgba(255,59,48,0.10);
+  --border:rgba(60,60,67,0.12);--shadow:0 2px 12px rgba(0,0,0,0.06);
+  --radius:18px;--radius-sm:12px;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#000;--card:#1c1c1e;--text:#f2f2f7;--muted:#636366;
+    --accent:#0a84ff;--accent-bg:rgba(10,132,255,0.15);--accent-glow:rgba(10,132,255,0.30);
+    --green-text:#30d158;--green-bg:rgba(48,209,88,0.15);
+    --red-text:#ff453a;--red-bg:rgba(255,69,58,0.15);
+    --border:rgba(84,84,88,0.55);--shadow:0 2px 12px rgba(0,0,0,0.30);
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Display',sans-serif;padding:16px 14px 50px;min-height:100vh;}
+.wrap{max-width:980px;margin:0 auto;}
 
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💹</text></svg>">
-    
-    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23f2f2f7%22/><text y=%22.95em%22 x=%225%22 font-size=%2285%22>💹</text></svg>">
-    
-    <meta name="apple-mobile-web-app-title" content="日薪换算">
+/* HEADER */
+.app-hdr{display:flex;align-items:center;gap:10px;margin-bottom:22px;}
+.app-hdr h1{font-size:20px;font-weight:700;letter-spacing:-0.3px;}
+.rate-pill{margin-left:auto;display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--muted);}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--muted);flex-shrink:0;transition:background .3s;}
+.dot.live{background:#30d158;animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+/* LAYOUT */
+.dash{display:grid;grid-template-columns:1fr;gap:14px;}
+@media(min-width:740px){.dash{grid-template-columns:360px 1fr;align-items:start;}}
 
-    <style>
-      :root {
-        --bg-color: #f2f2f7; --card-bg: #ffffff; --text-main: #1c1c1e; --text-muted: #8e8e93;
-        --accent: #007aff; --accent-bg: #e5f0ff; --border: rgba(60, 60, 67, 0.1); --shadow: 0 4px 20px rgba(0,0,0,0.04);
-      }
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --bg-color: #000000; --card-bg: #1c1c1e; --text-main: #f2f2f7; --text-muted: #98989d;
-          --accent: #0a84ff; --accent-bg: rgba(10, 132, 255, 0.15);
-          --border: rgba(84, 84, 88, 0.65); --shadow: 0 4px 20px rgba(0,0,0,0.2);
-        }
-      }
-      * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
-      
-      body { background-color: var(--bg-color); color: var(--text-main); padding: 20px 16px; }
-      .container { max-width: 1000px; margin: 0 auto; }
-      .header { text-align: center; margin-bottom: 24px; }
-      .header h1 { font-size: 22px; font-weight: 600; }
-      
-      /* 响应式双栏网格 */
-      .dashboard { display: grid; grid-template-columns: 1fr; gap: 20px; }
-      @media (min-width: 768px) {
-        .dashboard { grid-template-columns: 380px 1fr; align-items: start; }
-        .header { text-align: left; margin-bottom: 30px; }
-      }
+/* HERO */
+.hero{background:var(--accent);border-radius:var(--radius);padding:24px 22px;color:#fff;box-shadow:0 8px 28px var(--accent-glow);margin-bottom:14px;}
+.hero-lbl{font-size:12px;opacity:.85;font-weight:500;margin-bottom:6px;letter-spacing:.2px;}
+.hero-val{font-size:44px;font-weight:800;letter-spacing:-1.5px;line-height:1;}
+.hero-stats{margin-top:14px;font-size:13px;opacity:.9;font-weight:500;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;}
+.hero-tax{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.2);display:none;}
+.tax-row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;font-weight:500;}
+.tax-row.total{font-weight:700;margin-bottom:0;}
 
-      .hero-card { background: var(--accent); color: white; border-radius: 20px; padding: 24px; text-align: center; box-shadow: 0 10px 30px rgba(0, 122, 255, 0.3); margin-bottom: 20px;}
-      .hero-value { font-size: 42px; font-weight: 700; }
-      
-      .card { background: var(--card-bg); border-radius: 16px; padding: 20px; box-shadow: var(--shadow); margin-bottom: 20px;}
-      .section-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; display: flex; justify-content: space-between;}
-      
-      .input-group { margin-bottom: 16px; }
-      .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-      .input-group label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
-      .input-box { display: flex; align-items: center; background: var(--bg-color); border-radius: 12px; padding: 12px 14px; border: 1px solid transparent; transition: 0.2s;}
-      .input-box:focus-within { border-color: var(--accent); }
-      .input-box input { flex: 1; border: none; background: none; outline: none; font-size: 16px; font-weight: 600; color: var(--text-main); width: 100%; }
-      .input-box .unit { font-size: 14px; color: var(--text-muted); margin-left: 8px; }
+/* CARDS */
+.card{background:var(--card);border-radius:var(--radius);padding:18px 16px;box-shadow:var(--shadow);border:1px solid var(--border);margin-bottom:14px;}
+.stitle{font-size:14px;font-weight:700;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:8px;}
 
-      .slider-header { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 12px; color: var(--text-muted); margin-top: 10px;}
-      input[type="range"] { width: 100%; height: 6px; appearance: none; background: var(--bg-color); border-radius: 3px; outline: none; }
-      input[type="range"]::-webkit-slider-thumb { appearance: none; width: 24px; height: 24px; border-radius: 50%; background: #fff; border: 2px solid var(--accent); box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
-      
-      .chart-wrap { height: 240px; }
-      table { width: 100%; border-collapse: collapse; text-align: right; }
-      th, td { font-size: 14px; padding: 12px 8px; border-bottom: 1px solid var(--border); }
-      th { color: var(--text-muted); font-weight: 500; font-size: 12px;}
-      .cur-row { background: var(--accent-bg); color: var(--accent); font-weight: 700; border-radius: 8px;}
-      .cur-row td { border-bottom: none; }
-      .rate-sub { font-size: 11px; color: var(--text-muted); display: block; font-weight: normal; margin-top: 2px;}
-    </style>
+/* INPUTS */
+.ig{display:grid;gap:10px;}
+.g2{grid-template-columns:1fr 1fr;}
+.ig-item label{display:block;font-size:10px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.6px;font-weight:500;}
+.ibox{display:flex;align-items:center;background:var(--bg);border-radius:var(--radius-sm);padding:10px 13px;border:1.5px solid transparent;transition:border-color .2s;}
+.ibox:focus-within{border-color:var(--accent);background:var(--card);}
+.ibox input{flex:1;border:none;background:none;outline:none;font-size:16px;font-weight:600;color:var(--text);width:100%;min-width:0;}
+.ibox input::-webkit-inner-spin-button{-webkit-appearance:none;}
+.ibox .u{font-size:12px;color:var(--muted);margin-left:4px;white-space:nowrap;}
+
+/* QUICK BTNS */
+.ub{background:var(--accent-bg);color:var(--accent);border:none;border-radius:6px;padding:5px 8px;font-size:12px;font-weight:600;cursor:pointer;margin-left:6px;transition:opacity .15s;}
+.ub:active{opacity:0.7;}
+
+/* TOGGLE */
+.tog-lbl{font-size:12px;font-weight:400;color:var(--muted);display:flex;align-items:center;cursor:pointer;gap:6px;user-select:none;flex-shrink:0;}
+.tog{position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0;}
+.tog input{opacity:0;width:0;height:0;position:absolute;}
+.tog-track{position:absolute;inset:0;background:var(--border);border-radius:10px;transition:background .2s;}
+.tog input:checked+.tog-track{background:var(--accent);}
+.tog-thumb{position:absolute;width:16px;height:16px;background:#fff;border-radius:50%;top:2px;left:2px;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.tog input:checked~.tog-thumb{transform:translateX(16px);}
+
+/* SLIDER */
+.sl-row{margin-top:14px;}
+.sl-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.sl-lbl{font-size:11px;color:var(--muted);font-weight:500;}
+.sl-val{font-size:15px;font-weight:700;color:var(--accent);}
+input[type=range]{width:100%;height:5px;appearance:none;-webkit-appearance:none;background:var(--bg);border-radius:3px;outline:none;border:1px solid var(--border);}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#fff;border:2.5px solid var(--accent);box-shadow:0 2px 6px rgba(0,0,0,.15);cursor:pointer;}
+.rate-st{font-size:11px;color:var(--muted);text-align:center;margin-top:10px;}
+
+/* CHARTS & TABLE */
+.ch-wrap{position:relative;}
+.ch-wrap.h220{height:220px;}
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap;}
+th{font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:8px 10px;text-align:right;border-bottom:1px solid var(--border);}
+th:first-child{text-align:left;}
+td{padding:11px 10px;text-align:right;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums;}
+td:first-child{text-align:left;font-weight:500;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--bg);}
+.cur-row td{background:var(--accent-bg);color:var(--accent);font-weight:700;}
+.cur-row td:first-child{border-radius:8px 0 0 8px;}
+.cur-row td:last-child{border-radius:0 8px 8px 0;}
+.cur-row:hover td{background:var(--accent-bg);}
+.dp{color:var(--green-text);font-size:11px;}
+.dn{color:var(--red-text);font-size:11px;}
+.rsub{font-size:10px;color:var(--muted);display:block;font-weight:400;margin-top:1px;}
+
+/* FOOTER */
+.page-footer{text-align:center;font-size:11px;color:var(--muted);margin-top:20px;line-height:1.6;}
+</style>
 </head>
 <body>
-<div class="container">
-  <div class="header">
+<div class="wrap">
+
+  <div class="app-hdr">
     <h1>💹 日元薪资转换器</h1>
+    <div class="rate-pill">
+      <div class="dot" id="liveDot"></div>
+      <span id="pillTxt">同步中...</span>
+    </div>
   </div>
 
-  <div class="dashboard">
-    <div class="left-col">
-      <div class="hero-card">
-        <div style="font-size:14px;opacity:0.9;margin-bottom:8px;">当前折合人民币约</div>
-        <div class="hero-value" id="hero-cny">￥0</div>
-        <div id="hero-yearly" style="font-size:14px;opacity:0.8;margin-top:8px;"></div>
+  <div class="dash">
+
+    <div>
+
+      <div class="hero">
+        <div class="hero-lbl" id="heroLbl">折合人民币</div>
+        <div class="hero-val" id="heroCny">￥—</div>
+        
+        <div class="hero-stats" id="heroStats">
+          </div>
+
+        <div class="hero-tax" id="heroTax">
+          <div class="tax-row"><span>税前额面</span><span id="tbGross">—</span></div>
+          <div class="tax-row total"><span>税后到手</span><span id="tbNet">—</span></div>
+        </div>
       </div>
 
       <div class="card">
-        <div class="section-title">薪资设置</div>
-        <div class="input-grid" style="margin-bottom: 20px;">
-          <div class="input-group" style="margin-bottom: 0;">
-            <label>到手月薪</label>
-            <div class="input-box">
-              <input type="number" id="jpy" value="220000" step="1000">
-              <span class="unit">円</span>
+        <div class="stitle">
+          薪资设置
+          <label class="tog-lbl">
+            <div class="tog"><input type="checkbox" id="taxToggle"><div class="tog-track"></div><div class="tog-thumb"></div></div>
+            切换税前模式
+          </label>
+        </div>
+        <div class="ig">
+          <div class="ig-item">
+            <label id="jpyLbl">到手月薪</label>
+            <div class="ibox">
+              <input type="number" id="jpy" value="220000" step="10000" min="0">
+              <button type="button" class="ub" id="btnSub">-1万</button>
+              <button type="button" class="ub" id="btnAdd">+1万</button>
+              <span class="u">円</span>
             </div>
           </div>
-          <div class="input-group" style="margin-bottom: 0;">
-            <label>发薪月数</label>
-            <div class="input-box">
-              <input type="number" id="months" value="12" step="0.5" min="1">
-              <span class="unit">个月</span>
+          <div class="ig-item">
+            <label>年发薪月数</label>
+            <div class="ibox">
+              <input type="number" id="months" value="12" step="0.5" min="1" max="24">
+              <span class="u">个月</span>
             </div>
           </div>
         </div>
-
-        <div class="section-title">双向汇率引擎</div>
-        <div class="input-grid">
-          <div class="input-group" style="margin-bottom: 0;">
-            <label>100日元 = (人民币)</label>
-            <div class="input-box"><input type="number" id="rateA" value="4.30" step="0.01"></div>
-          </div>
-          <div class="input-group" style="margin-bottom: 0;">
-            <label>1人民币 = (日元)</label>
-            <div class="input-box"><input type="number" id="rateB" value="23.26" step="0.01"></div>
-          </div>
-        </div>
-        
-        <div class="slider-header"><span>左右拖动模拟汇率</span><span id="sliderVal" style="color:var(--accent);font-weight:700;">4.30</span></div>
-        <input type="range" id="rateSlider" min="3.5" max="5.5" step="0.01" value="4.30">
       </div>
+
+      <div class="card">
+        <div class="stitle">
+          实时汇率
+          <button type="button" class="ub" id="btnResetRate" style="margin:0; font-size:11px; padding:4px 8px; font-weight:500;">↺ 重置为实时</button>
+        </div>
+        <div class="ig g2">
+          <div class="ig-item">
+            <label>100日元 → 人民币</label>
+            <div class="ibox"><input type="number" id="rateA" value="4.30" step="0.01" min="0.01"><span class="u">CNY</span></div>
+          </div>
+          <div class="ig-item">
+            <label>1人民币 → 日元</label>
+            <div class="ibox"><input type="number" id="rateB" value="23.26" step="0.01" min="0.01"><span class="u">円</span></div>
+          </div>
+        </div>
+        <div class="sl-row">
+          <div class="sl-hdr"><span class="sl-lbl">拖动模拟汇率</span><span class="sl-val" id="slVal">4.30</span></div>
+          <input type="range" id="rateSlider" min="3.5" max="5.0" step="0.01" value="4.30">
+        </div>
+        <div class="rate-st" id="rateSt">正在连接实时数据...</div>
+      </div>
+
     </div>
 
-    <div class="right-col">
-      <div class="card"><div class="chart-wrap"><canvas id="chart"></canvas></div></div>
+    <div>
+
       <div class="card">
-        <div style="overflow-x:auto;">
+        <div class="stitle">区间月收入对比</div>
+        <div class="ch-wrap h220"><canvas id="barChart" role="img" aria-label="不同汇率人民币月收入对比"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="stitle">汇率对照表</div>
+        <div class="tbl-wrap">
           <table>
-            <thead>
-              <tr>
-                <th style="text-align:left;">基准汇率</th>
-                <th>月收入 (￥)</th>
-                <th>年收入 (万)</th>
-              </tr>
-            </thead>
+            <thead><tr>
+              <th>汇率</th><th>月收入 (元)</th><th>与当前差</th><th>年收入</th>
+            </tr></thead>
             <tbody id="tbody"></tbody>
           </table>
         </div>
       </div>
+
     </div>
+  </div>
+
+  <div class="page-footer">
+    * 注：时薪按每周 40 工作小时计算。<br>
+    若开启税前模式，各项税费扣除统一按 20% 粗略计算。
   </div>
 </div>
 
 <script>
-let chart = null;
-const jpyInput = document.getElementById('jpy');
-const monthsInput = document.getElementById('months');
-const rateAInput = document.getElementById('rateA');
-const rateBInput = document.getElementById('rateB');
-const slider = document.getElementById('rateSlider');
+// ── STATE ─────────────────────────────────────────────
+let barChart = null;
+const $ = id => document.getElementById(id);
+const fmt = n => Math.round(n).toLocaleString('zh-CN');
+const fmtD = (n,d=2) => n.toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtJ = n => Math.round(n).toLocaleString('ja-JP') + ' 円';
 
-function updateRateFromA(valA) {
-  if(valA > 0) rateBInput.value = (100 / valA).toFixed(2);
-}
-function updateRateFromB(valB) {
-  if(valB > 0) {
-    const valA = (100 / valB).toFixed(2);
-    rateAInput.value = valA;
-    slider.value = valA;
-    document.getElementById('sliderVal').innerText = valA;
+// 固定生成 3.5 到 5.0 的汇率刻度数组，步长 0.1
+function buildRates() {
+  const out = [];
+  for (let r = 35; r <= 50; r += 1) {
+    out.push(r / 10);
   }
+  return out;
 }
 
-function loadSettings() {
-  const savedJpy = localStorage.getItem('my_jpy');
-  const savedMonths = localStorage.getItem('my_months');
-  const savedRateA = localStorage.getItem('my_rate_a');
-  if (savedJpy) jpyInput.value = savedJpy;
-  if (savedMonths) monthsInput.value = savedMonths;
-  if (savedRateA) {
-    rateAInput.value = savedRateA;
-    slider.value = savedRateA;
-    document.getElementById('sliderVal').innerText = savedRateA;
-    updateRateFromA(savedRateA);
-  }
+function getState() {
+  const isTax = $('taxToggle').checked;
+  const rawJpy = parseFloat($('jpy').value) || 220000;
+  const netJpy = isTax ? rawJpy * 0.80 : rawJpy;
+  const curRate = parseFloat($('rateA').value) || 4.30;
+  const months = parseFloat($('months').value) || 12;
+  return { isTax, rawJpy, netJpy, curRate, months };
 }
 
-// 新增：从网络获取真实实时汇率
-async function fetchRealTimeRate() {
-  const rateAInput = document.getElementById('rateA');
-  const slider = document.getElementById('rateSlider');
-  const sliderVal = document.getElementById('sliderVal');
+// ── PERSIST ───────────────────────────────────────────
+function save() {
+  localStorage.setItem('jpy_cfg_v2', JSON.stringify({
+    jpy: $('jpy').value,
+    months: $('months').value,
+    taxMode: $('taxToggle').checked
+  }));
+}
 
+function load() {
   try {
-    // 接口：以日元(JPY)为基准获取最新汇率
-    const response = await fetch('https://open.er-api.com/v6/latest/JPY');
-    const data = await response.json();
-    
-    // 获取 100 日元兑换人民币的汇率 (data.rates.CNY 是 1日元的汇率)
-    const realRate = (data.rates.CNY * 100).toFixed(2);
-    
-    // 更新输入框和滑块
-    rateAInput.value = realRate;
-    slider.value = realRate;
-    sliderVal.innerText = realRate;
-    
-    // 同步更新第二个汇率框 (1人民币=多少日元)
-    updateRateFromA(realRate);
-    
-    // 重新渲染图表和数据
-    render();
-    console.log("实时汇率更新成功:", realRate);
-  } catch (error) {
-    console.error("汇率获取失败，将使用本地缓存或默认值:", error);
+    const c = JSON.parse(localStorage.getItem('jpy_cfg_v2') || '{}');
+    if (c.jpy) $('jpy').value = c.jpy;
+    if (c.months) $('months').value = c.months;
+    if (c.taxMode) $('taxToggle').checked = true;
+  } catch(e) {}
+}
+
+// ── LIVE RATE (无缓存) ─────────────────────────────────
+async function fetchRate() {
+  try {
+    const r = await fetch('https://open.er-api.com/v6/latest/JPY');
+    const d = await r.json();
+    const rate = parseFloat((d.rates.CNY * 100).toFixed(3));
+    applyRate(rate);
+  } catch(e) { 
+    $('rateSt').textContent = '自动同步失败，请手动填写汇率'; 
+    $('pillTxt').textContent = '同步失败';
+    $('liveDot').className = 'dot';
   }
 }
 
-function saveSettings(jpy, months, rateA) {
-  localStorage.setItem('my_jpy', jpy);
-  localStorage.setItem('my_months', months);
-  localStorage.setItem('my_rate_a', rateA);
+function applyRate(rate) {
+  $('rateA').value = rate.toFixed(3);
+  $('rateB').value = (100 / rate).toFixed(2);
+  $('rateSlider').value = rate;
+  $('slVal').textContent = rate.toFixed(2);
+  const t = new Date(); 
+  const ts = `${t.getHours()}:${t.getMinutes().toString().padStart(2,'0')}`;
+  $('rateSt').textContent = `实时汇率已同步 · ${ts}`;
+  $('liveDot').className = 'dot live';
+  $('pillTxt').textContent = `¥${rate.toFixed(2)}/100円`;
+  render();
 }
 
+// ── RENDER ────────────────────────────────────────────
 function render() {
-  const jpy = parseFloat(jpyInput.value) || 0;
-  const months = parseFloat(monthsInput.value) || 12;
-  const curRate = parseFloat(rateAInput.value) || 0;
-  saveSettings(jpy, months, curRate);
-
-  const curCny = (jpy * curRate) / 100;
-  document.getElementById('hero-cny').innerText = '￥' + curCny.toLocaleString('zh-CN', {maximumFractionDigits:0});
-  document.getElementById('hero-yearly').innerText = `预估年收 (${months}薪): ￥${((curCny * months) / 10000).toFixed(1)}万`;
-
-  const rates = [3.5, 3.8, 4.0, 4.1, 4.2, 4.3, 4.4, 4.5, 4.7, 5.0, 5.2];
+  const { isTax, rawJpy, netJpy, curRate, months } = getState();
+  save();
   
-  if (chart) chart.destroy();
-  chart = new Chart(document.getElementById('chart'), {
+  const curCny = netJpy * curRate / 100;
+  const annualJpy = netJpy * months;
+  const annualCny = annualJpy * curRate / 100;
+
+  // 1. Hero 面板及计算
+  $('heroCny').textContent = '￥' + fmt(curCny);
+  $('jpyLbl').textContent = isTax ? '税前额面月薪' : '到手月薪';
+
+  // 合并时薪与年薪在一排
+  const hourlyJpy = (netJpy * 12) / 2080; 
+  const hourlyCny = hourlyJpy * curRate / 100;
+  $('heroStats').innerHTML = `
+    <span>时薪: ${fmt(hourlyJpy)}円 ≈ ￥${fmtD(hourlyCny, 1)}</span>
+    <span>年薪: ${fmtD(annualJpy/10000, 1)}万円 ≈ ￥${fmtD(annualCny/10000, 1)}万</span>
+  `;
+
+  // 2. 税前扣除明细（行内融合扣除金额）
+  const taxDiv = $('heroTax');
+  if (isTax) {
+    taxDiv.style.display = 'block';
+    const deduct = rawJpy * 0.20;
+    $('tbGross').textContent = fmtJ(rawJpy);
+    // 把扣除额度放到小括号里
+    $('tbNet').innerHTML = `${fmtJ(netJpy)} ≈ ￥${fmt(curCny)} <span style="font-size:11px;font-weight:500;opacity:0.85;">(− ${fmt(deduct)}円)</span>`;
+  } else {
+    taxDiv.style.display = 'none';
+  }
+
+  const rates = buildRates();
+  const dark = matchMedia('(prefers-color-scheme:dark)').matches;
+  const gc = dark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)';
+  const tc = dark ? '#636366' : '#8e8e93';
+
+  // 3. 柱状图
+  if (barChart) barChart.destroy();
+  barChart = new Chart($('barChart').getContext('2d'), {
     type: 'bar',
     data: {
-      labels: rates.map(r => r.toFixed(2)),
-      datasets: [{ data: rates.map(r => (jpy * r) / 100), backgroundColor: rates.map(r => Math.abs(r - curRate) < 0.05 ? '#007aff' : 'rgba(0,122,255,0.15)'), borderRadius: 6 }]
+      labels: rates.map(r => r.toFixed(1)),
+      datasets: [{ data: rates.map(r => parseFloat((netJpy * r / 100).toFixed(2))),
+        backgroundColor: rates.map(r => Math.abs(r - curRate) < 0.1 * 0.6 ? '#007aff' : (dark ? 'rgba(10,132,255,.2)' : 'rgba(0,122,255,.15)')),
+        borderRadius: 6, borderSkipped: false }]
     },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { title: i => `汇率 ${i[0].label}`, label: i => `月收入: ￥${fmt(i.raw)}` } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: tc, font: { size: 10 } } },
+        y: { grid: { color: gc }, ticks: { color: tc, font: { size: 10 }, callback: v => '￥' + (v/10000).toFixed(1) + '万' } }
+      }
+    }
   });
 
-  const tbody = document.getElementById('tbody');
+  // 4. 对照表
+  const tbody = $('tbody');
   tbody.innerHTML = '';
   rates.forEach(r => {
-    const cny = (jpy * r) / 100;
-    const isCur = Math.abs(r - curRate) < 0.05;
-    const rB = (100 / r).toFixed(1);
+    const cny = netJpy * r / 100;
+    const diff = cny - curCny;
+    const isCur = Math.abs(r - curRate) < 0.1 * 0.6;
+    const annualCnyLoop = cny * months;
+    
     const tr = document.createElement('tr');
     if (isCur) tr.className = 'cur-row';
     tr.innerHTML = `
-      <td style="text-align:left;">${r.toFixed(2)}<span class="rate-sub">1元 = ${rB}円</span></td>
-      <td>￥${Math.round(cny).toLocaleString()}</td>
-      <td>${(cny * months / 10000).toFixed(1)}万</td>
+      <td>${r.toFixed(1)}<span class="rsub">1元 ≈ ${(100/r).toFixed(1)}円</span></td>
+      <td>￥${fmt(cny)}</td>
+      <td>${isCur ? '<span style="color:var(--muted)">—</span>' : diff > 0 ? `<span class="dp">+￥${fmt(diff)}</span>` : `<span class="dn">−￥${fmt(Math.abs(diff))}</span>`}</td>
+      <td>${fmtD(annualCnyLoop / 10000, 1)}万</td>
     `;
     tbody.appendChild(tr);
   });
 }
 
-slider.addEventListener('input', e => {
-  const val = e.target.value;
-  rateAInput.value = val;
-  document.getElementById('sliderVal').innerText = val;
-  updateRateFromA(val);
+// ── EVENTS ────────────────────────────────────────────
+$('rateSlider').addEventListener('input', e => {
+  const v = parseFloat(e.target.value);
+  $('rateA').value = v.toFixed(3); 
+  $('rateB').value = (100/v).toFixed(2); 
+  $('slVal').textContent = v.toFixed(2); 
   render();
 });
-rateAInput.addEventListener('input', e => {
-  const val = parseFloat(e.target.value);
-  if(val > 0) {
-    slider.value = val;
-    document.getElementById('sliderVal').innerText = val.toFixed(2);
-    updateRateFromA(val);
-  }
-  render();
-});
-rateBInput.addEventListener('input', e => {
-  const val = parseFloat(e.target.value);
-  updateRateFromB(val);
-  render();
-});
-jpyInput.addEventListener('input', render);
-monthsInput.addEventListener('input', render);
 
-// 修改后的初始化顺序
-async function init() {
-  loadSettings(); // 先加载用户上次的薪资设置
-  await fetchRealTimeRate(); // 然后尝试覆盖为最新真实汇率
+$('rateA').addEventListener('input', e => {
+  const v = parseFloat(e.target.value);
+  if (v > 0) { 
+    $('rateB').value = (100/v).toFixed(2); 
+    $('rateSlider').value = v; 
+    $('slVal').textContent = v.toFixed(2); 
+  } 
   render();
+});
+
+$('rateB').addEventListener('input', e => {
+  const v = parseFloat(e.target.value);
+  if (v > 0) { 
+    const a = (100/v).toFixed(3); 
+    $('rateA').value = a; 
+    $('rateSlider').value = a; 
+    $('slVal').textContent = parseFloat(a).toFixed(2); 
+  } 
+  render();
+});
+
+// 重置汇率按钮
+$('btnResetRate').addEventListener('click', () => {
+  $('rateSt').textContent = '正在连接实时数据...';
+  $('pillTxt').textContent = '同步中...';
+  $('liveDot').className = 'dot';
+  fetchRate(); // 重新拉取并应用最新汇率
+});
+
+$('jpy').addEventListener('input', render);
+$('months').addEventListener('input', render);
+
+// +1万 / -1万 按钮逻辑
+$('btnAdd').addEventListener('click', () => {
+  const jpyInput = $('jpy');
+  let val = parseFloat(jpyInput.value) || 0;
+  jpyInput.value = val + 10000;
+  jpyInput.dispatchEvent(new Event('input', { bubbles: true }));
+});
+
+$('btnSub').addEventListener('click', () => {
+  const jpyInput = $('jpy');
+  let val = parseFloat(jpyInput.value) || 0;
+  val = Math.max(0, val - 10000); // 防止减成负数
+  jpyInput.value = val;
+  jpyInput.dispatchEvent(new Event('input', { bubbles: true }));
+});
+
+$('taxToggle').addEventListener('change', render);
+
+// ── PWA ───────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 }
 
-init();
+// ── INIT ──────────────────────────────────────────────
+load();
+render();
+fetchRate();
 </script>
 </body>
 </html>
