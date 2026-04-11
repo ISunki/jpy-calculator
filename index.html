@@ -1,113 +1,199 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>日元薪资转换器</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💴</text></svg>">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<style>
-  :root {
-    --bg-color: #f2f2f7; --card-bg: #ffffff; --text-main: #1c1c1e; --text-muted: #8e8e93;
-    --accent: #007aff; --accent-bg: #e5f0ff; --green: #34c759; --green-bg: #eaf9ed;
-    --orange: #ff9500; --orange-bg: #fff4e5; --border: rgba(60, 60, 67, 0.1); --shadow: 0 4px 20px rgba(0,0,0,0.04);
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg-color: #000000; --card-bg: #1c1c1e; --text-main: #f2f2f7; --text-muted: #98989d;
-      --accent: #0a84ff; --accent-bg: rgba(10, 132, 255, 0.15); --green: #32d74b;
-      --green-bg: rgba(50, 215, 75, 0.15); --orange: #ff9f0a; --orange-bg: rgba(255, 159, 10, 0.15);
-      --border: rgba(84, 84, 88, 0.65); --shadow: 0 4px 20px rgba(0,0,0,0.2);
-    }
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
-  body { background-color: var(--bg-color); color: var(--text-main); padding: 20px 16px; max-width: 600px; margin: 0 auto; }
-  .header { text-align: center; margin-bottom: 24px; }
-  .header h1 { font-size: 20px; font-weight: 600; }
-  .hero-card { background: var(--accent); color: white; border-radius: 20px; padding: 24px; text-align: center; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0, 122, 255, 0.3); }
-  .hero-value { font-size: 40px; font-weight: 700; }
-  .card { background: var(--card-bg); border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: var(--shadow); }
-  .section-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
-  .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-  .input-group label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
-  .input-box { display: flex; align-items: center; background: var(--bg-color); border-radius: 12px; padding: 12px 14px; border: 1px solid transparent; }
-  .input-box input { flex: 1; border: none; background: none; outline: none; font-size: 16px; font-weight: 600; color: var(--text-main); width: 100%; }
-  .slider-header { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 12px; color: var(--text-muted); }
-  input[type="range"] { width: 100%; height: 6px; appearance: none; background: var(--bg-color); border-radius: 3px; outline: none; }
-  input[type="range"]::-webkit-slider-thumb { appearance: none; width: 24px; height: 24px; border-radius: 50%; background: #fff; border: 2px solid var(--accent); box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
-  .chart-wrap { height: 220px; }
-  table { width: 100%; border-collapse: collapse; text-align: right; }
-  th, td { font-size: 14px; padding: 12px 8px; border-bottom: 1px solid var(--border); }
-  .cur-row { background: var(--accent-bg); color: var(--accent); font-weight: 700; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>日元薪资转换器</title>
+
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💹</text></svg>">
+    
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23f2f2f7%22/><text y=%22.95em%22 x=%225%22 font-size=%2285%22>💹</text></svg>">
+    
+    <meta name="apple-mobile-web-app-title" content="日薪换算">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+
+    <style>
+      :root {
+        --bg-color: #f2f2f7; --card-bg: #ffffff; --text-main: #1c1c1e; --text-muted: #8e8e93;
+        --accent: #007aff; --accent-bg: #e5f0ff; --border: rgba(60, 60, 67, 0.1); --shadow: 0 4px 20px rgba(0,0,0,0.04);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg-color: #000000; --card-bg: #1c1c1e; --text-main: #f2f2f7; --text-muted: #98989d;
+          --accent: #0a84ff; --accent-bg: rgba(10, 132, 255, 0.15);
+          --border: rgba(84, 84, 88, 0.65); --shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
+      
+      body { background-color: var(--bg-color); color: var(--text-main); padding: 20px 16px; }
+      .container { max-width: 1000px; margin: 0 auto; }
+      .header { text-align: center; margin-bottom: 24px; }
+      .header h1 { font-size: 22px; font-weight: 600; }
+      
+      /* 响应式双栏网格 */
+      .dashboard { display: grid; grid-template-columns: 1fr; gap: 20px; }
+      @media (min-width: 768px) {
+        .dashboard { grid-template-columns: 380px 1fr; align-items: start; }
+        .header { text-align: left; margin-bottom: 30px; }
+      }
+
+      .hero-card { background: var(--accent); color: white; border-radius: 20px; padding: 24px; text-align: center; box-shadow: 0 10px 30px rgba(0, 122, 255, 0.3); margin-bottom: 20px;}
+      .hero-value { font-size: 42px; font-weight: 700; }
+      
+      .card { background: var(--card-bg); border-radius: 16px; padding: 20px; box-shadow: var(--shadow); margin-bottom: 20px;}
+      .section-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; display: flex; justify-content: space-between;}
+      
+      .input-group { margin-bottom: 16px; }
+      .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .input-group label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+      .input-box { display: flex; align-items: center; background: var(--bg-color); border-radius: 12px; padding: 12px 14px; border: 1px solid transparent; transition: 0.2s;}
+      .input-box:focus-within { border-color: var(--accent); }
+      .input-box input { flex: 1; border: none; background: none; outline: none; font-size: 16px; font-weight: 600; color: var(--text-main); width: 100%; }
+      .input-box .unit { font-size: 14px; color: var(--text-muted); margin-left: 8px; }
+
+      .slider-header { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 12px; color: var(--text-muted); margin-top: 10px;}
+      input[type="range"] { width: 100%; height: 6px; appearance: none; background: var(--bg-color); border-radius: 3px; outline: none; }
+      input[type="range"]::-webkit-slider-thumb { appearance: none; width: 24px; height: 24px; border-radius: 50%; background: #fff; border: 2px solid var(--accent); box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+      
+      .chart-wrap { height: 240px; }
+      table { width: 100%; border-collapse: collapse; text-align: right; }
+      th, td { font-size: 14px; padding: 12px 8px; border-bottom: 1px solid var(--border); }
+      th { color: var(--text-muted); font-weight: 500; font-size: 12px;}
+      .cur-row { background: var(--accent-bg); color: var(--accent); font-weight: 700; border-radius: 8px;}
+      .cur-row td { border-bottom: none; }
+      .rate-sub { font-size: 11px; color: var(--text-muted); display: block; font-weight: normal; margin-top: 2px;}
+    </style>
 </head>
 <body>
-<div class="header"><h1>💴 日元薪资转换器</h1></div>
-<div class="hero-card">
-  <div style="font-size:14px;opacity:0.9;margin-bottom:8px;">当前折合人民币</div>
-  <div class="hero-value" id="hero-cny">￥0</div>
-  <div id="hero-yearly" style="font-size:13px;opacity:0.8;margin-top:8px;"></div>
-</div>
-<div class="card">
-  <div class="input-grid">
-    <div class="input-group">
-      <label>到手月薪 (円)</label>
-      <div class="input-box"><input type="number" id="jpy" value="220000"></div>
+<div class="container">
+  <div class="header">
+    <h1>💹 日元薪资转换器</h1>
+  </div>
+
+  <div class="dashboard">
+    <div class="left-col">
+      <div class="hero-card">
+        <div style="font-size:14px;opacity:0.9;margin-bottom:8px;">当前折合人民币约</div>
+        <div class="hero-value" id="hero-cny">￥0</div>
+        <div id="hero-yearly" style="font-size:14px;opacity:0.8;margin-top:8px;"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">薪资设置</div>
+        <div class="input-grid" style="margin-bottom: 20px;">
+          <div class="input-group" style="margin-bottom: 0;">
+            <label>到手月薪</label>
+            <div class="input-box">
+              <input type="number" id="jpy" value="220000" step="1000">
+              <span class="unit">円</span>
+            </div>
+          </div>
+          <div class="input-group" style="margin-bottom: 0;">
+            <label>发薪月数</label>
+            <div class="input-box">
+              <input type="number" id="months" value="12" step="0.5" min="1">
+              <span class="unit">个月</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-title">双向汇率引擎</div>
+        <div class="input-grid">
+          <div class="input-group" style="margin-bottom: 0;">
+            <label>100日元 = (人民币)</label>
+            <div class="input-box"><input type="number" id="rateA" value="4.30" step="0.01"></div>
+          </div>
+          <div class="input-group" style="margin-bottom: 0;">
+            <label>1人民币 = (日元)</label>
+            <div class="input-box"><input type="number" id="rateB" value="23.26" step="0.01"></div>
+          </div>
+        </div>
+        
+        <div class="slider-header"><span>左右拖动模拟汇率</span><span id="sliderVal" style="color:var(--accent);font-weight:700;">4.30</span></div>
+        <input type="range" id="rateSlider" min="3.5" max="5.5" step="0.01" value="4.30">
+      </div>
     </div>
-    <div class="input-group">
-      <label>当前汇率</label>
-      <div class="input-box"><input type="number" id="currentRate" value="4.30" step="0.01"></div>
+
+    <div class="right-col">
+      <div class="card"><div class="chart-wrap"><canvas id="chart"></canvas></div></div>
+      <div class="card">
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th style="text-align:left;">基准汇率</th>
+                <th>月收入 (￥)</th>
+                <th>年收入 (万)</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
-  <div class="slider-header"><span>拖动模拟波动</span><span id="sliderVal" style="color:var(--accent);font-weight:700;">4.30</span></div>
-  <input type="range" id="rateSlider" min="3.5" max="5.0" step="0.01" value="4.30">
 </div>
-<div class="card"><div class="chart-wrap"><canvas id="chart"></canvas></div></div>
-<div class="card"><div style="overflow-x:auto;"><table>
-  <thead><tr><th>汇率</th><th>月入</th><th>年收</th></tr></thead>
-  <tbody id="tbody"></tbody>
-</table></div></div>
 
 <script>
 let chart = null;
 const jpyInput = document.getElementById('jpy');
-const rateInput = document.getElementById('currentRate');
+const monthsInput = document.getElementById('months');
+const rateAInput = document.getElementById('rateA');
+const rateBInput = document.getElementById('rateB');
 const slider = document.getElementById('rateSlider');
 
-// 【核心：加载记忆】
-function loadSettings() {
-  const savedJpy = localStorage.getItem('my_jpy'); //
-  const savedRate = localStorage.getItem('my_rate'); //
-  if (savedJpy) jpyInput.value = savedJpy; //
-  if (savedRate) {
-    rateInput.value = savedRate;
-    slider.value = savedRate;
-    document.getElementById('sliderVal').innerText = savedRate;
+function updateRateFromA(valA) {
+  if(valA > 0) rateBInput.value = (100 / valA).toFixed(2);
+}
+function updateRateFromB(valB) {
+  if(valB > 0) {
+    const valA = (100 / valB).toFixed(2);
+    rateAInput.value = valA;
+    slider.value = valA;
+    document.getElementById('sliderVal').innerText = valA;
   }
 }
 
-// 【核心：保存记忆】
-function saveSettings(jpy, rate) {
-  localStorage.setItem('my_jpy', jpy); //
-  localStorage.setItem('my_rate', rate); //
+function loadSettings() {
+  const savedJpy = localStorage.getItem('my_jpy');
+  const savedMonths = localStorage.getItem('my_months');
+  const savedRateA = localStorage.getItem('my_rate_a');
+  if (savedJpy) jpyInput.value = savedJpy;
+  if (savedMonths) monthsInput.value = savedMonths;
+  if (savedRateA) {
+    rateAInput.value = savedRateA;
+    slider.value = savedRateA;
+    document.getElementById('sliderVal').innerText = savedRateA;
+    updateRateFromA(savedRateA);
+  }
+}
+
+function saveSettings(jpy, months, rateA) {
+  localStorage.setItem('my_jpy', jpy);
+  localStorage.setItem('my_months', months);
+  localStorage.setItem('my_rate_a', rateA);
 }
 
 function render() {
   const jpy = parseFloat(jpyInput.value) || 0;
-  const curRate = parseFloat(rateInput.value) || 0;
-  saveSettings(jpy, curRate); // 每次变动都保存
+  const months = parseFloat(monthsInput.value) || 12;
+  const curRate = parseFloat(rateAInput.value) || 0;
+  saveSettings(jpy, months, curRate);
 
   const curCny = (jpy * curRate) / 100;
   document.getElementById('hero-cny').innerText = '￥' + curCny.toLocaleString('zh-CN', {maximumFractionDigits:0});
-  document.getElementById('hero-yearly').innerText = `预估年收: ￥${((curCny * 12) / 10000).toFixed(1)}万`;
+  document.getElementById('hero-yearly').innerText = `预估年收 (${months}薪): ￥${((curCny * months) / 10000).toFixed(1)}万`;
 
-  const rates = [3.5, 3.8, 4.0, 4.1, 4.2, 4.3, 4.4, 4.5, 4.7, 5.0];
+  const rates = [3.5, 3.8, 4.0, 4.1, 4.2, 4.3, 4.4, 4.5, 4.7, 5.0, 5.2];
+  
   if (chart) chart.destroy();
   chart = new Chart(document.getElementById('chart'), {
     type: 'bar',
     data: {
       labels: rates.map(r => r.toFixed(2)),
-      datasets: [{ data: rates.map(r => (jpy * r) / 100), backgroundColor: rates.map(r => Math.abs(r - curRate) < 0.1 ? '#007aff' : 'rgba(0,122,255,0.2)'), borderRadius: 6 }]
+      datasets: [{ data: rates.map(r => (jpy * r) / 100), backgroundColor: rates.map(r => Math.abs(r - curRate) < 0.05 ? '#007aff' : 'rgba(0,122,255,0.15)'), borderRadius: 6 }]
     },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
   });
@@ -116,23 +202,45 @@ function render() {
   tbody.innerHTML = '';
   rates.forEach(r => {
     const cny = (jpy * r) / 100;
-    const isCur = Math.abs(r - curRate) < 0.1;
+    const isCur = Math.abs(r - curRate) < 0.05;
+    const rB = (100 / r).toFixed(1);
     const tr = document.createElement('tr');
     if (isCur) tr.className = 'cur-row';
-    tr.innerHTML = `<td>${r.toFixed(2)}</td><td>￥${Math.round(cny).toLocaleString()}</td><td>${(cny*12/10000).toFixed(1)}万</td>`;
+    tr.innerHTML = `
+      <td style="text-align:left;">${r.toFixed(2)}<span class="rate-sub">1元 = ${rB}円</span></td>
+      <td>￥${Math.round(cny).toLocaleString()}</td>
+      <td>${(cny * months / 10000).toFixed(1)}万</td>
+    `;
     tbody.appendChild(tr);
   });
 }
 
 slider.addEventListener('input', e => {
-  rateInput.value = e.target.value;
-  document.getElementById('sliderVal').innerText = e.target.value;
+  const val = e.target.value;
+  rateAInput.value = val;
+  document.getElementById('sliderVal').innerText = val;
+  updateRateFromA(val);
+  render();
+});
+rateAInput.addEventListener('input', e => {
+  const val = parseFloat(e.target.value);
+  if(val > 0) {
+    slider.value = val;
+    document.getElementById('sliderVal').innerText = val.toFixed(2);
+    updateRateFromA(val);
+  }
+  render();
+});
+rateBInput.addEventListener('input', e => {
+  const val = parseFloat(e.target.value);
+  updateRateFromB(val);
   render();
 });
 jpyInput.addEventListener('input', render);
-rateInput.addEventListener('input', render);
+monthsInput.addEventListener('input', render);
 
-loadSettings(); // 页面加载时读取
+loadSettings();
+if(!rateBInput.value) updateRateFromA(rateAInput.value);
 render();
 </script>
 </body>
