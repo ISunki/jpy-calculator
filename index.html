@@ -32,7 +32,7 @@
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Display',sans-serif;padding:16px 14px 50px;min-height:100vh;}
-.wrap{max-width:980px;margin:0 auto;}
+.wrap{max-width:980px;margin:0 auto;padding-bottom:20px;}
 
 /* HEADER */
 .app-hdr{display:flex;align-items:center;gap:10px;margin-bottom:22px;}
@@ -152,9 +152,9 @@ tr:hover td{background:var(--bg);}
         </div>
         <div class="ig">
           <div class="ig-item">
-            <label id="jpyLbl">税后月薪</label>
+            <label id="jpyLbl">月薪</label>
             <div class="ibox">
-              <input type="number" id="jpy" value="220000" step="10000" min="0">
+              <input type="number" id="jpy" value="300000" step="10000" min="0">
               <button type="button" class="ub" id="btnSub">-1万</button>
               <button type="button" class="ub" id="btnAdd">+1万</button>
               <span class="u">円</span>
@@ -163,7 +163,7 @@ tr:hover td{background:var(--bg);}
           <div class="ig-item">
             <label>年发薪月数</label>
             <div class="ibox">
-              <input type="number" id="months" value="12" step="0.5" min="1" max="24">
+              <input type="number" id="months" value="18" step="0.5" min="1" max="24">
               <span class="u">个月</span>
             </div>
           </div>
@@ -248,10 +248,10 @@ function buildDynamicRates(curRate) {
 
 function getState() {
   const isTax = $('taxToggle').checked;
-  const rawJpy = parseFloat($('jpy').value) || 220000;
+  const rawJpy = parseFloat($('jpy').value) || 300000;
   const netJpy = isTax ? rawJpy * 0.80 : rawJpy;
   const curRate = parseFloat($('rateA').value) || 4.30;
-  const months = parseFloat($('months').value) || 12;
+  const months = parseFloat($('months').value) || 18;
   return { isTax, rawJpy, netJpy, curRate, months };
 }
 
@@ -279,6 +279,29 @@ function applyRate(rate) {
   render();
 }
 
+// ── SAVE & LOAD ──────────────────────────────────────
+function saveToLocal() {
+  const data = {
+    jpy: $('jpy').value,
+    months: $('months').value,
+    taxMode: $('taxToggle').checked
+  };
+  localStorage.setItem('jpy_cfg_v2', JSON.stringify(data));
+}
+
+function loadFromLocal() {
+  const c = JSON.parse(localStorage.getItem('jpy_cfg_v2') || '{}');
+  // 如果本地有值则使用本地值，否则使用默认值
+  if (c.jpy !== undefined) $('jpy').value = c.jpy;
+  else $('jpy').value = "300000";
+
+  if (c.months !== undefined) $('months').value = c.months;
+  else $('months').value = "18";
+
+  if (c.taxMode !== undefined) $('taxToggle').checked = c.taxMode;
+  else $('taxToggle').checked = true; // 默认税前模式
+}
+
 // ── RENDER ────────────────────────────────────────────
 function render() {
   const { isTax, rawJpy, netJpy, curRate, months } = getState();
@@ -286,9 +309,8 @@ function render() {
   const annualJpy = netJpy * months;
   const annualCny = annualJpy * curRate / 100;
 
-  // 1. Hero UI
   $('heroCny').textContent = '￥' + fmt(curCny);
-  $('jpyLbl').textContent = isTax ? '税前月薪' : '税后月薪';
+  $('jpyLbl').textContent = isTax ? '税前月薪' : '到手月薪';
 
   const hourlyJpy = (netJpy * 12) / 2080; 
   const hourlyCny = hourlyJpy * curRate / 100;
@@ -301,7 +323,6 @@ function render() {
   if (isTax) {
     taxDiv.style.display = 'block';
     $('tbGross').textContent = fmtJ(rawJpy);
-    // 只保留税后数值
     $('tbNet').textContent = fmtJ(netJpy);
   } else {
     taxDiv.style.display = 'none';
@@ -325,6 +346,7 @@ function render() {
     },
     options: {
       responsive: true, maintainAspectRatio: false,
+      animation: false,
       plugins: { legend: { display: false } },
       scales: {
         x: { grid: { display: false }, ticks: { color: tc, font: { size: 9 } } },
@@ -352,6 +374,9 @@ function render() {
     `;
     tbody.appendChild(tr);
   });
+  
+  // 每次渲染后自动保存设置
+  saveToLocal();
 }
 
 // ── EVENTS ────────────────────────────────────────────
@@ -379,14 +404,8 @@ $('btnSub').addEventListener('click', () => { $('jpy').value = Math.max(0, (pars
 
 // ── INIT ──────────────────────────────────────────────
 window.onload = () => {
-  const c = JSON.parse(localStorage.getItem('jpy_cfg_v2') || '{}');
-  if (c.jpy) $('jpy').value = c.jpy;
-  if (c.months) $('months').value = c.months;
-  if (c.taxMode) $('taxToggle').checked = true;
+  loadFromLocal();
   fetchRate();
-};
-window.onbeforeunload = () => {
-  localStorage.setItem('jpy_cfg_v2', JSON.stringify({ jpy: $('jpy').value, months: $('months').value, taxMode: $('taxToggle').checked }));
 };
 </script>
 </body>
