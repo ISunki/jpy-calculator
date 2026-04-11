@@ -137,8 +137,8 @@ tr:hover td{background:var(--bg);}
           </div>
 
         <div class="hero-tax" id="heroTax">
-          <div class="tax-row"><span>税前额面</span><span id="tbGross">—</span></div>
-          <div class="tax-row total"><span>税后到手</span><span id="tbNet">—</span></div>
+          <div class="tax-row"><span>税前</span><span id="tbGross">—</span></div>
+          <div class="tax-row total"><span>税后</span><span id="tbNet">—</span></div>
         </div>
       </div>
 
@@ -152,7 +152,7 @@ tr:hover td{background:var(--bg);}
         </div>
         <div class="ig">
           <div class="ig-item">
-            <label id="jpyLbl">到手月薪</label>
+            <label id="jpyLbl">税后月薪</label>
             <div class="ibox">
               <input type="number" id="jpy" value="220000" step="10000" min="0">
               <button type="button" class="ub" id="btnSub">-1万</button>
@@ -177,16 +177,16 @@ tr:hover td{background:var(--bg);}
         </div>
         <div class="ig g2">
           <div class="ig-item">
-            <label>100日元 → 人民币</label>
+            <label>100日元 → CNY</label>
             <div class="ibox"><input type="number" id="rateA" value="4.30" step="0.01" min="0.01"><span class="u">CNY</span></div>
           </div>
           <div class="ig-item">
-            <label>1人民币 → 日元</label>
+            <label>1 CNY → 日元</label>
             <div class="ibox"><input type="number" id="rateB" value="23.26" step="0.01" min="0.01"><span class="u">円</span></div>
           </div>
         </div>
         <div class="sl-row">
-          <div class="sl-hdr"><span class="sl-lbl">拖动模拟汇率</span><span class="sl-val" id="slVal">4.30</span></div>
+          <div class="sl-hdr"><span class="sl-lbl">模拟汇率滑块</span><span class="sl-val" id="slVal">4.30</span></div>
           <input type="range" id="rateSlider" min="3.5" max="5.0" step="0.01" value="4.30">
         </div>
         <div class="rate-st" id="rateSt">正在连接实时数据...</div>
@@ -197,12 +197,12 @@ tr:hover td{background:var(--bg);}
     <div>
 
       <div class="card">
-        <div class="stitle">区间月收入对比</div>
-        <div class="ch-wrap h220"><canvas id="barChart" role="img" aria-label="不同汇率人民币月收入对比"></canvas></div>
+        <div class="stitle">月收入对比趋势</div>
+        <div class="ch-wrap h220"><canvas id="barChart"></canvas></div>
       </div>
 
       <div class="card">
-        <div class="stitle">汇率对照表</div>
+        <div class="stitle">汇率对照表 (当前 ±0.5)</div>
         <div class="tbl-wrap">
           <table>
             <thead><tr>
@@ -223,18 +223,25 @@ tr:hover td{background:var(--bg);}
 </div>
 
 <script>
-// ── STATE ─────────────────────────────────────────────
+// ── STATE & UTILS ─────────────────────────────────────────────
 let barChart = null;
 const $ = id => document.getElementById(id);
 const fmt = n => Math.round(n).toLocaleString('zh-CN');
 const fmtD = (n,d=2) => n.toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});
 const fmtJ = n => Math.round(n).toLocaleString('ja-JP') + ' 円';
 
-// 固定生成 3.5 到 5.0 的汇率刻度数组，步长 0.1
-function buildRates() {
+function buildChartRates() {
   const out = [];
-  for (let r = 35; r <= 50; r += 1) {
-    out.push(r / 10);
+  for (let r = 35; r <= 50; r += 1) out.push(r / 10);
+  return out;
+}
+
+function buildDynamicRates(curRate) {
+  const center = Math.round(curRate * 10) / 10;
+  const out = [];
+  for (let i = -5; i <= 5; i++) {
+    const val = parseFloat((center + (i * 0.1)).toFixed(1));
+    if (val >= 2.0 && val <= 7.0) out.push(val);
   }
   return out;
 }
@@ -248,25 +255,7 @@ function getState() {
   return { isTax, rawJpy, netJpy, curRate, months };
 }
 
-// ── PERSIST ───────────────────────────────────────────
-function save() {
-  localStorage.setItem('jpy_cfg_v2', JSON.stringify({
-    jpy: $('jpy').value,
-    months: $('months').value,
-    taxMode: $('taxToggle').checked
-  }));
-}
-
-function load() {
-  try {
-    const c = JSON.parse(localStorage.getItem('jpy_cfg_v2') || '{}');
-    if (c.jpy) $('jpy').value = c.jpy;
-    if (c.months) $('months').value = c.months;
-    if (c.taxMode) $('taxToggle').checked = true;
-  } catch(e) {}
-}
-
-// ── LIVE RATE (无缓存) ─────────────────────────────────
+// ── DATA FETCH ─────────────────────────────────────────
 async function fetchRate() {
   try {
     const r = await fetch('https://open.er-api.com/v6/latest/JPY');
@@ -274,9 +263,7 @@ async function fetchRate() {
     const rate = parseFloat((d.rates.CNY * 100).toFixed(3));
     applyRate(rate);
   } catch(e) { 
-    $('rateSt').textContent = '自动同步失败，请手动填写汇率'; 
-    $('pillTxt').textContent = '同步失败';
-    $('liveDot').className = 'dot';
+    $('rateSt').textContent = '同步失败，请手动填写'; 
   }
 }
 
@@ -285,9 +272,8 @@ function applyRate(rate) {
   $('rateB').value = (100 / rate).toFixed(2);
   $('rateSlider').value = rate;
   $('slVal').textContent = rate.toFixed(2);
-  const t = new Date(); 
-  const ts = `${t.getHours()}:${t.getMinutes().toString().padStart(2,'0')}`;
-  $('rateSt').textContent = `实时汇率已同步 · ${ts}`;
+  const t = new Date();
+  $('rateSt').textContent = `实时汇率已同步 · ${t.getHours()}:${t.getMinutes().toString().padStart(2,'0')}`;
   $('liveDot').className = 'dot live';
   $('pillTxt').textContent = `¥${rate.toFixed(2)}/100円`;
   render();
@@ -296,17 +282,14 @@ function applyRate(rate) {
 // ── RENDER ────────────────────────────────────────────
 function render() {
   const { isTax, rawJpy, netJpy, curRate, months } = getState();
-  save();
-  
   const curCny = netJpy * curRate / 100;
   const annualJpy = netJpy * months;
   const annualCny = annualJpy * curRate / 100;
 
-  // 1. Hero 面板及计算
+  // 1. Hero UI
   $('heroCny').textContent = '￥' + fmt(curCny);
-  $('jpyLbl').textContent = isTax ? '税前额面月薪' : '到手月薪';
+  $('jpyLbl').textContent = isTax ? '税前月薪' : '税后月薪';
 
-  // 合并时薪与年薪在一排
   const hourlyJpy = (netJpy * 12) / 2080; 
   const hourlyCny = hourlyJpy * curRate / 100;
   $('heroStats').innerHTML = `
@@ -314,59 +297,58 @@ function render() {
     <span>年薪: ${fmtD(annualJpy/10000, 1)}万円 ≈ ￥${fmtD(annualCny/10000, 1)}万</span>
   `;
 
-  // 2. 税前扣除明细（行内融合扣除金额）
   const taxDiv = $('heroTax');
   if (isTax) {
     taxDiv.style.display = 'block';
-    const deduct = rawJpy * 0.20;
     $('tbGross').textContent = fmtJ(rawJpy);
-    // 把扣除额度放到小括号里
-    $('tbNet').innerHTML = `${fmtJ(netJpy)} ≈ ￥${fmt(curCny)} <span style="font-size:11px;font-weight:500;opacity:0.85;">(− ${fmt(deduct)}円)</span>`;
+    // 只保留税后数值
+    $('tbNet').textContent = fmtJ(netJpy);
   } else {
     taxDiv.style.display = 'none';
   }
 
-  const rates = buildRates();
   const dark = matchMedia('(prefers-color-scheme:dark)').matches;
   const gc = dark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)';
   const tc = dark ? '#636366' : '#8e8e93';
 
-  // 3. 柱状图
+  const chartRates = buildChartRates();
   if (barChart) barChart.destroy();
   barChart = new Chart($('barChart').getContext('2d'), {
     type: 'bar',
     data: {
-      labels: rates.map(r => r.toFixed(1)),
-      datasets: [{ data: rates.map(r => parseFloat((netJpy * r / 100).toFixed(2))),
-        backgroundColor: rates.map(r => Math.abs(r - curRate) < 0.1 * 0.6 ? '#007aff' : (dark ? 'rgba(10,132,255,.2)' : 'rgba(0,122,255,.15)')),
-        borderRadius: 6, borderSkipped: false }]
+      labels: chartRates.map(r => r.toFixed(1)),
+      datasets: [{ 
+        data: chartRates.map(r => parseFloat((netJpy * r / 100).toFixed(2))),
+        backgroundColor: chartRates.map(r => Math.abs(r - curRate) < 0.06 ? '#007aff' : (dark ? 'rgba(10,132,255,.2)' : 'rgba(0,122,255,.15)')),
+        borderRadius: 5, borderSkipped: false 
+      }]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: { callbacks: { title: i => `汇率 ${i[0].label}`, label: i => `月收入: ￥${fmt(i.raw)}` } } },
+      plugins: { legend: { display: false } },
       scales: {
-        x: { grid: { display: false }, ticks: { color: tc, font: { size: 10 } } },
-        y: { grid: { color: gc }, ticks: { color: tc, font: { size: 10 }, callback: v => '￥' + (v/10000).toFixed(1) + '万' } }
+        x: { grid: { display: false }, ticks: { color: tc, font: { size: 9 } } },
+        y: { grid: { color: gc }, ticks: { color: tc, font: { size: 9 }, callback: v => (v/1000).toFixed(0) + 'k' } }
       }
     }
   });
 
-  // 4. 对照表
+  const dynamicRates = buildDynamicRates(curRate);
   const tbody = $('tbody');
   tbody.innerHTML = '';
-  rates.forEach(r => {
+  dynamicRates.forEach(r => {
     const cny = netJpy * r / 100;
     const diff = cny - curCny;
-    const isCur = Math.abs(r - curRate) < 0.1 * 0.6;
-    const annualCnyLoop = cny * months;
+    const isCur = Math.abs(r - curRate) < 0.06;
+    const annCny = cny * months;
     
     const tr = document.createElement('tr');
     if (isCur) tr.className = 'cur-row';
     tr.innerHTML = `
-      <td>${r.toFixed(1)}<span class="rsub">1元 ≈ ${(100/r).toFixed(1)}円</span></td>
+      <td>${r.toFixed(1)}<span class="rsub">100円 ≈ ${r.toFixed(1)}元</span></td>
       <td>￥${fmt(cny)}</td>
-      <td>${isCur ? '<span style="color:var(--muted)">—</span>' : diff > 0 ? `<span class="dp">+￥${fmt(diff)}</span>` : `<span class="dn">−￥${fmt(Math.abs(diff))}</span>`}</td>
-      <td>${fmtD(annualCnyLoop / 10000, 1)}万</td>
+      <td>${isCur ? '—' : (diff > 0 ? `<span class="dp">+${fmt(diff)}</span>` : `<span class="dn">-${fmt(Math.abs(diff))}</span>`)}</td>
+      <td>${fmtD(annCny / 10000, 1)}万</td>
     `;
     tbody.appendChild(tr);
   });
@@ -380,66 +362,32 @@ $('rateSlider').addEventListener('input', e => {
   $('slVal').textContent = v.toFixed(2); 
   render();
 });
-
 $('rateA').addEventListener('input', e => {
   const v = parseFloat(e.target.value);
-  if (v > 0) { 
-    $('rateB').value = (100/v).toFixed(2); 
-    $('rateSlider').value = v; 
-    $('slVal').textContent = v.toFixed(2); 
-  } 
-  render();
+  if (v > 0) { $('rateB').value = (100/v).toFixed(2); $('rateSlider').value = v; $('slVal').textContent = v.toFixed(2); render(); }
 });
-
 $('rateB').addEventListener('input', e => {
   const v = parseFloat(e.target.value);
-  if (v > 0) { 
-    const a = (100/v).toFixed(3); 
-    $('rateA').value = a; 
-    $('rateSlider').value = a; 
-    $('slVal').textContent = parseFloat(a).toFixed(2); 
-  } 
-  render();
+  if (v > 0) { const a = (100/v).toFixed(3); $('rateA').value = a; $('rateSlider').value = a; $('slVal').textContent = parseFloat(a).toFixed(2); render(); }
 });
-
-// 重置汇率按钮
-$('btnResetRate').addEventListener('click', () => {
-  $('rateSt').textContent = '正在连接实时数据...';
-  $('pillTxt').textContent = '同步中...';
-  $('liveDot').className = 'dot';
-  fetchRate(); // 重新拉取并应用最新汇率
-});
-
+$('btnResetRate').addEventListener('click', fetchRate);
 $('jpy').addEventListener('input', render);
 $('months').addEventListener('input', render);
-
-// +1万 / -1万 按钮逻辑
-$('btnAdd').addEventListener('click', () => {
-  const jpyInput = $('jpy');
-  let val = parseFloat(jpyInput.value) || 0;
-  jpyInput.value = val + 10000;
-  jpyInput.dispatchEvent(new Event('input', { bubbles: true }));
-});
-
-$('btnSub').addEventListener('click', () => {
-  const jpyInput = $('jpy');
-  let val = parseFloat(jpyInput.value) || 0;
-  val = Math.max(0, val - 10000); // 防止减成负数
-  jpyInput.value = val;
-  jpyInput.dispatchEvent(new Event('input', { bubbles: true }));
-});
-
 $('taxToggle').addEventListener('change', render);
-
-// ── PWA ───────────────────────────────────────────────
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
-}
+$('btnAdd').addEventListener('click', () => { $('jpy').value = (parseFloat($('jpy').value)||0) + 10000; render(); });
+$('btnSub').addEventListener('click', () => { $('jpy').value = Math.max(0, (parseFloat($('jpy').value)||0) - 10000); render(); });
 
 // ── INIT ──────────────────────────────────────────────
-load();
-render();
-fetchRate();
+window.onload = () => {
+  const c = JSON.parse(localStorage.getItem('jpy_cfg_v2') || '{}');
+  if (c.jpy) $('jpy').value = c.jpy;
+  if (c.months) $('months').value = c.months;
+  if (c.taxMode) $('taxToggle').checked = true;
+  fetchRate();
+};
+window.onbeforeunload = () => {
+  localStorage.setItem('jpy_cfg_v2', JSON.stringify({ jpy: $('jpy').value, months: $('months').value, taxMode: $('taxToggle').checked }));
+};
 </script>
 </body>
 </html>
