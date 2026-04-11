@@ -305,30 +305,31 @@ function loadFromLocal() {
 function render() {
   const { isTax, rawJpy, netJpy, curRate, months } = getState();
   
-  // 核心逻辑：计算显示的人民币时，始终用“税后(净)月薪”乘以汇率
+  // 顶部 Hero 大字：永远显示【税后拿到手】的钱，这最符合实际感知
   const curCny = netJpy * curRate / 100;
-  const annualNetJpy = netJpy * months;
-  const annualCny = annualNetJpy * curRate / 100;
-
   $('heroCny').textContent = '￥' + fmt(curCny);
   $('jpyLbl').textContent = isTax ? '税前月薪' : '到手月薪';
 
-  // 核心逻辑：时薪算法对齐。
-  // 税前模式下，时薪计算用税前月薪 / 160；税后模式下用税后月薪 / 160。
-  const displayMonthlyJpy = isTax ? rawJpy : netJpy;
-  const hourlyJpy = displayMonthlyJpy / 160; 
+  // 核心逻辑对齐：无论是税前还是税后模式，基准就是你输入的那个原始数字！
+  const baseJpy = rawJpy; 
+  const hourlyJpy = baseJpy / 160; 
+  const annualJpy = baseJpy * months;
+  
   const hourlyCny = hourlyJpy * curRate / 100;
+  const annualCny = annualJpy * curRate / 100;
 
+  // 动态添加前缀：明确告诉用户这 1875 到底是税前还是税后
+  const prefix = isTax ? '税前' : '税后';
   $('heroStats').innerHTML = `
-    <span>时薪: ${fmt(hourlyJpy)}円 ≈ ￥${fmtD(hourlyCny, 1)}</span>
-    <span>年薪: ${fmtD(annualNetJpy/10000, 1)}万円 ≈ ￥${fmtD(annualCny/10000, 1)}万</span>
+    <span>${prefix}时薪: ${fmt(hourlyJpy)}円 ≈ ￥${fmtD(hourlyCny, 1)}</span>
+    <span>${prefix}年薪: ${fmtD(annualJpy/10000, 1)}万円 ≈ ￥${fmtD(annualCny/10000, 1)}万</span>
   `;
 
   const taxDiv = $('heroTax');
   if (isTax) {
     taxDiv.style.display = 'block';
     $('tbGross').textContent = fmtJ(rawJpy);
-    $('tbNet').textContent = fmtJ(netJpy);
+    $('tbNet').innerHTML = `<span style="font-size:11px;font-weight:500;opacity:0.85;margin-right:4px;">(− ${fmt(rawJpy * 0.20)}円)</span>` + fmtJ(netJpy);
   } else {
     taxDiv.style.display = 'none';
   }
@@ -367,7 +368,7 @@ function render() {
     const cny = netJpy * r / 100;
     const diff = cny - curCny;
     const isCur = Math.abs(r - curRate) < 0.06;
-    const annCny = cny * months;
+    const annCny = cny * months; // 表格内年收入采用税后净值计算
     
     const tr = document.createElement('tr');
     if (isCur) tr.className = 'cur-row';
