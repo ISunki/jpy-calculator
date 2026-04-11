@@ -217,7 +217,7 @@ tr:hover td{background:var(--bg);}
   </div>
 
   <div class="page-footer">
-    * 注：时薪按每周 40 工作小时计算。<br>
+    * 注：时薪按月 160 工作小时计算（税前对应税前，税后对应税后）。<br>
     若开启税前模式，各项税费扣除统一按 20% 粗略计算。
   </div>
 </div>
@@ -291,7 +291,6 @@ function saveToLocal() {
 
 function loadFromLocal() {
   const c = JSON.parse(localStorage.getItem('jpy_cfg_v2') || '{}');
-  // 如果本地有值则使用本地值，否则使用默认值
   if (c.jpy !== undefined) $('jpy').value = c.jpy;
   else $('jpy').value = "300000";
 
@@ -299,24 +298,30 @@ function loadFromLocal() {
   else $('months').value = "18";
 
   if (c.taxMode !== undefined) $('taxToggle').checked = c.taxMode;
-  else $('taxToggle').checked = true; // 默认税前模式
+  else $('taxToggle').checked = true;
 }
 
 // ── RENDER ────────────────────────────────────────────
 function render() {
   const { isTax, rawJpy, netJpy, curRate, months } = getState();
+  
+  // 核心逻辑：计算显示的人民币时，始终用“税后(净)月薪”乘以汇率
   const curCny = netJpy * curRate / 100;
-  const annualJpy = netJpy * months;
-  const annualCny = annualJpy * curRate / 100;
+  const annualNetJpy = netJpy * months;
+  const annualCny = annualNetJpy * curRate / 100;
 
   $('heroCny').textContent = '￥' + fmt(curCny);
   $('jpyLbl').textContent = isTax ? '税前月薪' : '到手月薪';
 
-  const hourlyJpy = (netJpy * 12) / 2080; 
+  // 核心逻辑：时薪算法对齐。
+  // 税前模式下，时薪计算用税前月薪 / 160；税后模式下用税后月薪 / 160。
+  const displayMonthlyJpy = isTax ? rawJpy : netJpy;
+  const hourlyJpy = displayMonthlyJpy / 160; 
   const hourlyCny = hourlyJpy * curRate / 100;
+
   $('heroStats').innerHTML = `
     <span>时薪: ${fmt(hourlyJpy)}円 ≈ ￥${fmtD(hourlyCny, 1)}</span>
-    <span>年薪: ${fmtD(annualJpy/10000, 1)}万円 ≈ ￥${fmtD(annualCny/10000, 1)}万</span>
+    <span>年薪: ${fmtD(annualNetJpy/10000, 1)}万円 ≈ ￥${fmtD(annualCny/10000, 1)}万</span>
   `;
 
   const taxDiv = $('heroTax');
@@ -375,7 +380,6 @@ function render() {
     tbody.appendChild(tr);
   });
   
-  // 每次渲染后自动保存设置
   saveToLocal();
 }
 
