@@ -170,6 +170,36 @@ function loadSettings() {
   }
 }
 
+// 新增：从网络获取真实实时汇率
+async function fetchRealTimeRate() {
+  const rateAInput = document.getElementById('rateA');
+  const slider = document.getElementById('rateSlider');
+  const sliderVal = document.getElementById('sliderVal');
+
+  try {
+    // 接口：以日元(JPY)为基准获取最新汇率
+    const response = await fetch('https://open.er-api.com/v6/latest/JPY');
+    const data = await response.json();
+    
+    // 获取 100 日元兑换人民币的汇率 (data.rates.CNY 是 1日元的汇率)
+    const realRate = (data.rates.CNY * 100).toFixed(2);
+    
+    // 更新输入框和滑块
+    rateAInput.value = realRate;
+    slider.value = realRate;
+    sliderVal.innerText = realRate;
+    
+    // 同步更新第二个汇率框 (1人民币=多少日元)
+    updateRateFromA(realRate);
+    
+    // 重新渲染图表和数据
+    render();
+    console.log("实时汇率更新成功:", realRate);
+  } catch (error) {
+    console.error("汇率获取失败，将使用本地缓存或默认值:", error);
+  }
+}
+
 function saveSettings(jpy, months, rateA) {
   localStorage.setItem('my_jpy', jpy);
   localStorage.setItem('my_months', months);
@@ -239,9 +269,14 @@ rateBInput.addEventListener('input', e => {
 jpyInput.addEventListener('input', render);
 monthsInput.addEventListener('input', render);
 
-loadSettings();
-if(!rateBInput.value) updateRateFromA(rateAInput.value);
-render();
+// 修改后的初始化顺序
+async function init() {
+  loadSettings(); // 先加载用户上次的薪资设置
+  await fetchRealTimeRate(); // 然后尝试覆盖为最新真实汇率
+  render();
+}
+
+init();
 </script>
 </body>
 </html>
